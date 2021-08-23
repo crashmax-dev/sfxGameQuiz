@@ -8,31 +8,33 @@ import {
   Button,
   Heading,
   InputGroup,
-  InputRightElement,
+  InputRightElement
 } from '@chakra-ui/react'
 import { Loading } from './components/Loading'
 import { Container } from './components/Container'
 import { ProgressBar } from './components/ProgressBar'
 import { GithubCorner } from './components/GitHubCorner'
 import { Fire as Fireworks } from './components/Fire'
-import initialGames from './games.json'
+import initialGames from './games.js'
 import styled from '@emotion/styled'
 
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)()
 
 function App() {
+  const [sources, setSources] = useState([])
   const [guessed, setGuessed] = useState([])
   const [sounds, setSounds] = useState()
   const [games, setGames] = useState(initialGames)
 
-  useEffect(() => fetchSfx(), [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => fetchSounds(), [])
 
-  const fetchSfx = async () => {
+  const fetchSounds = async () => {
     const buffers = []
 
-    for (const { game, sfx } of games) {
+    for (const { game, sound } of games) {
       const response = await (
-        await fetch('/sounds/' + sfx)
+        await fetch('/sounds/' + sound)
       ).arrayBuffer()
 
       audioCtx.decodeAudioData(response, (buffer) => {
@@ -65,21 +67,27 @@ function App() {
     }
   }
 
-  const playSound = (game) => {
-    const source = audioCtx.createBufferSource()
+  const playSound = (game, key) => {
+    for (let i = 0; i < sounds.length; i++) {
+      if (sources[i]) {
+        sources[i].currentTime = 0
+        sources[i].stop(0)
+      }
+    }
+
     const sound = sounds.find(v => v.game === game)
+    const source = audioCtx.createBufferSource()
     const volume = audioCtx.createGain()
 
     if (process.env.NODE_ENV === 'development') {
       console.log(sound)
     }
 
+    sources[key] = source
     source.buffer = sound.buffer
     volume.gain.value = 0.5
-    volume.connect(audioCtx.destination)
-    source.connect(volume)
-    source.start(6)
-    console.log(source.buffer);
+    source.connect(audioCtx.destination)
+    source.start(0)
   }
 
   if (!sounds) {
@@ -90,13 +98,11 @@ function App() {
     )
   }
 
-    return (
+  return (
     <Main textAlign="center" fontSize="xl">
       <GithubCorner />
       <Grid p={3}>
-        <Heading p={4}
-          style={{ userSelect: "none" }}
-        >
+        <Heading p={4}>
           SFX Game Quiz
         </Heading>
       </Grid>
@@ -104,19 +110,18 @@ function App() {
         {games.map(({ game }, key) => (
           <InputGroup key={key} size="md">
             <Input
-              style={{ userSelect: "none"}}
               variant="outline"
               placeholder={`Sound №${key + 1}`}
               disabled={guessed.includes(game)}
               onChange={(event) => checkGame(event, game)}
-              _disabled={{background: 'green.400'}}
+              _disabled={{ background: 'green.400' }}
             />
             {!guessed.includes(game) &&
               <InputRightElement width="4rem">
                 <Button
                   h="1.75rem"
                   size="sm"
-                  onClick={() => playSound(game)}
+                  onClick={() => playSound(game, key)}
                 >
                   Play
                 </Button>
