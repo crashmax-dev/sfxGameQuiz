@@ -4,7 +4,7 @@
  */
 export const GithubCorner = () => (
   <a
-    href="https://github.com/le-xot/sfxGameQuiz"
+    href="https://github.com/crashmax-dev/sfxGameQuiz"
     target="_blank"
     className="github-corner"
     aria-label="View source on GitHub"
